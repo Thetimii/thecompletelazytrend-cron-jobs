@@ -43,9 +43,21 @@ async function runWorkflowForUser(user) {
 
     // Call the complete workflow API
     console.log(`Calling API endpoint: ${apiBaseUrl}/api/complete-workflow`);
+
+    // Use auth_id instead of id to properly identify the user
+    // The backend expects userId to be the auth_id from Supabase Auth
+    const userId = user.auth_id;
+
+    if (!userId) {
+      console.error(`No auth_id found for user: ${user.email}, id: ${user.id}`);
+      throw new Error('User auth_id is required for workflow execution');
+    }
+
+    console.log(`Using auth_id: ${userId} for user: ${user.email}`);
+
     const response = await api.post('/api/complete-workflow', {
       businessDescription: user.business_description,
-      userId: user.id,
+      userId: userId,
       videosPerQuery: 3 // Default to 3 videos per query
     });
 
