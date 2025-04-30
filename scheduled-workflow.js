@@ -121,18 +121,52 @@ async function sendAnalysisEmail(user, analysisResults) {
     const videosCount = data?.videosCount || 0;
     const marketingStrategy = data?.marketingStrategy || {};
 
+    // Log the structure of the marketingStrategy object for debugging
+    console.log('Marketing strategy structure:', JSON.stringify({
+      keys: Object.keys(marketingStrategy),
+      hasContentIdeas: !!marketingStrategy.content_ideas,
+      hasContentIdeasAlt: !!marketingStrategy.contentIdeas,
+      hasVideoIdeas: !!marketingStrategy.videoIdeas,
+      hasCombinedSummary: !!marketingStrategy.combined_summary,
+      hasCombinedSummaryAlt: !!marketingStrategy.combinedSummary
+    }));
+
     // Create content for the email
     let contentIdeas = '';
-    if (marketingStrategy.content_ideas) {
-      const ideas = Array.isArray(marketingStrategy.content_ideas)
-        ? marketingStrategy.content_ideas
-        : [marketingStrategy.content_ideas];
 
-      contentIdeas = ideas.map(idea => `<li>${idea}</li>`).join('');
+    // Check different possible locations of content ideas
+    const contentIdeasSource = marketingStrategy.content_ideas ||
+                              marketingStrategy.contentIdeas ||
+                              marketingStrategy.videoIdeas ||
+                              [];
+
+    // Parse content ideas if they're stored as a string
+    let ideas = [];
+    if (typeof contentIdeasSource === 'string') {
+      try {
+        // Try to parse as JSON
+        ideas = JSON.parse(contentIdeasSource);
+      } catch (e) {
+        // If not valid JSON, split by newlines or use as a single item
+        ideas = contentIdeasSource.includes('\n')
+          ? contentIdeasSource.split('\n').filter(Boolean)
+          : [contentIdeasSource];
+      }
+    } else if (Array.isArray(contentIdeasSource)) {
+      ideas = contentIdeasSource;
+    } else if (contentIdeasSource) {
+      ideas = [contentIdeasSource];
     }
 
+    // Generate HTML list items
+    contentIdeas = ideas.map(idea => `<li>${idea}</li>`).join('');
+
     // Create a summary for the email
-    const summary = marketingStrategy.combined_summary || 'Analysis completed successfully.';
+    const summary = marketingStrategy.combined_summary ||
+                   marketingStrategy.combinedSummary ||
+                   marketingStrategy.strategySummary ||
+                   marketingStrategy.summary ||
+                   'Analysis completed successfully.';
 
     // Create the email content
     const htmlContent = `
