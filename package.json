@@ -1,0 +1,16 @@
+{
+  "name": "thecompletelazytrend-cron-jobs",
+  "version": "1.0.0",
+  "description": "Cron jobs for The Complete Lazy Trend application",
+  "main": "scheduled-workflow.js",
+  "type": "module",
+  "scripts": {
+    "start": "node scheduled-workflow.js"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.39.0",
+    "axios": "^1.6.2",
+    "dotenv": "^16.3.1",
+    "sib-api-v3-sdk": "^8.5.0"
+  }
+}

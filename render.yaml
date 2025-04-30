@@ -1,0 +1,19 @@
+services:
+  - type: cron
+    name: scheduled-workflow
+    runtime: node
+    plan: free
+    buildCommand: cd cron-jobs && npm install
+    startCommand: cd cron-jobs && node scheduled-workflow.js
+    schedule: "0 * * * *"
+    envVars:
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: API_BASE_URL
+        sync: false
+      - key: BREVO_API_KEY
+        sync: false
+      - key: EMAIL_SENDER
+        sync: false
