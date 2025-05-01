@@ -5,7 +5,8 @@
   "main": "scheduled-workflow.js",
   "type": "module",
   "scripts": {
-    "start": "node scheduled-workflow.js"
+    "start": "node scheduled-workflow.js",
+    "start:timezone": "node scheduled-workflow-with-timezone.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.39.0",
