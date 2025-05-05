@@ -201,7 +201,7 @@ async function sendAnalysisEmail(user, analysisResults) {
     const sendSmtpEmail = {
       to: [{ email: user.email, name: user.full_name || user.email }],
       sender: {
-        email: process.env.EMAIL_SENDER || 'noreply@thecompletelazytrend.com',
+        email: process.env.EMAIL_SENDER || 'noreply@lazy-trends.com',
         name: 'The Complete Lazy Trend'
       },
       subject: 'Your TikTok Trend Analysis Results',
@@ -228,7 +228,7 @@ function convertLocalToUTC(hour, timezone) {
   try {
     // Create a date object for today at the specified hour in the user's timezone
     const now = new Date();
-    
+
     // Create a formatter that will give us the time in the user's timezone
     const formatter = new Intl.DateTimeFormat('en-US', {
       timeZone: timezone,
@@ -240,18 +240,18 @@ function convertLocalToUTC(hour, timezone) {
       second: 'numeric',
       hour12: false
     });
-    
+
     // Get the current date/time parts in the user's timezone
     const parts = formatter.formatToParts(now);
     const dateParts = {};
-    
+
     // Extract the date parts
     parts.forEach(part => {
       if (part.type !== 'literal') {
         dateParts[part.type] = parseInt(part.value, 10);
       }
     });
-    
+
     // Create a date object for today at the specified hour in the user's timezone
     const userLocalDate = new Date(
       dateParts.year,
@@ -261,10 +261,10 @@ function convertLocalToUTC(hour, timezone) {
       0,    // Minutes
       0     // Seconds
     );
-    
+
     // Convert to UTC hour
     const utcHour = userLocalDate.getUTCHours();
-    
+
     console.log(`Converted local time ${hour}:00 in timezone ${timezone} to UTC hour: ${utcHour}:00`);
     return utcHour;
   } catch (error) {
@@ -305,21 +305,21 @@ async function runScheduledWorkflows() {
       // Skip users without timezone (use UTC as fallback)
       const timezone = user.timezone || 'UTC';
       const localHour = user.email_time_hour || 9; // Default to 9 AM if not specified
-      
+
       // Convert the user's preferred local hour to UTC
       const utcHour = convertLocalToUTC(localHour, timezone);
-      
+
       // Calculate the hour for which we should run the analysis
       // (one hour before the email time)
       const analysisHour = (utcHour - 1 + 24) % 24;
-      
+
       console.log(`User ${user.email}: Local time ${localHour}:00, UTC time ${utcHour}:00, Analysis time ${analysisHour}:00 UTC`);
-      
+
       // Check if it's time to run analysis for this user
       if (analysisHour === currentHour) {
         usersForAnalysis.push(user);
       }
-      
+
       // Check if it's time to send email for this user
       if (utcHour === currentHour) {
         usersForEmail.push(user);
@@ -356,7 +356,7 @@ async function runScheduledWorkflows() {
     // Send emails to users scheduled for email
     for (const user of usersForEmail) {
       console.log(`Processing email for user ${user.email}`);
-      
+
       // Get the stored analysis results
       const analysisResults = user.last_analysis_results;
 

@@ -23,7 +23,7 @@ SUPABASE_URL=https://your-supabase-url.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=your-supabase-service-role-key
 API_BASE_URL=https://your-backend-api-url.com/api
 BREVO_API_KEY=your-brevo-api-key
-EMAIL_SENDER=noreply@thecompletelazytrend.com
+EMAIL_SENDER=noreply@lazy-trends.com
 ```
 
 ## Local Development

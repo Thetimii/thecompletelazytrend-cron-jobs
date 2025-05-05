@@ -201,7 +201,7 @@ async function sendAnalysisEmail(user, analysisResults) {
     const sendSmtpEmail = {
       to: [{ email: user.email, name: user.full_name || user.email }],
       sender: {
-        email: process.env.EMAIL_SENDER || 'noreply@thecompletelazytrend.com',
+        email: process.env.EMAIL_SENDER || 'noreply@lazy-trends.com',
         name: 'The Complete Lazy Trend'
       },
       subject: 'Your TikTok Trend Analysis Results',
