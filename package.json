@@ -2,10 +2,10 @@
   "name": "thecompletelazytrend-cron-jobs",
   "version": "1.0.0",
   "description": "Cron jobs for The Complete Lazy Trend application",
-  "main": "scheduled-workflow.js",
+  "main": "scheduled-workflow-with-timezone.js",
   "type": "module",
   "scripts": {
-    "start": "node scheduled-workflow.js",
+    "start": "node scheduled-workflow-with-timezone.js",
     "start:timezone": "node scheduled-workflow-with-timezone.js"
   },
   "dependencies": {
