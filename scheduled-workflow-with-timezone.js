@@ -102,6 +102,207 @@ async function updateLastRunTimestamp(userId) {
   }
 }
 
+// Helper functions to format marketing strategy to HTML
+function cleanListItemText(text) {
+  return text.replace(/^- /, '').replace(/\\\\n/g, ' ').trim();
+}
+
+function createListHtml(str, title) {
+  if (typeof str !== 'string' || !str.trim()) return `<p>No ${title.toLowerCase()} provided.</p>`;
+  
+  let cleanedStr = str.replace(/\\*\\*/g, ''); // Remove all bold markers -> Corrected
+  cleanedStr = cleanedStr.replace(/^\\s*\\d\\.\\s*([\\w\\s()]+:)?/i, ''); // Remove leading "1. Title:" or "1. " -> Corrected
+  cleanedStr = cleanedStr.replace(/---/g, '').trim(); // Remove "---"
+
+  const items = cleanedStr.split('\\\\n- ')
+    .map(item => cleanListItemText(item))
+    .filter(item => item);
+
+  if (items.length === 0 || (items.length === 1 && cleanedStr.indexOf('\\\\n- ') === -1)) {
+    // If no list items or it's a single block of text not starting with list markers
+    return `<p>${cleanedStr.replace(/\\\\n/g, '<br>')}</p>`;
+  }
+
+  let listHtml = '<ul>';
+  items.forEach(itemText => {
+    if (itemText) {
+      listHtml += `<li>${itemText}</li>`;
+    }
+  });
+  listHtml += '</ul>';
+  return listHtml;
+}
+
+function formatSampleScriptHtml(scriptStr) {
+  if (typeof scriptStr !== 'string' || !scriptStr.trim()) return '<p>No sample script provided.</p>';
+  let html = '';
+  const cleanedScriptStr = scriptStr.replace(/\\*\\*/g, ''); // Remove bold markers globally first -> Corrected
+
+  const visualCuesMatch = cleanedScriptStr.match(/Visual Cues:([\\s\\S]*?)(Voiceover\\/Script:|$)/i); // Corrected
+  const voiceoverMatch = cleanedScriptStr.match(/Voiceover\\/Script:([\\s\\S]*)/i); // Corrected
+
+  if (visualCuesMatch && visualCuesMatch[1] && visualCuesMatch[1].trim()) {
+    html += '<h4>Visual Cues:</h4><ul>';
+    visualCuesMatch[1].split('\\\\n- ')
+      .map(line => cleanListItemText(line))
+      .filter(line => line)
+      .forEach(item => {
+        html += `<li>${item}</li>`;
+      });
+    html += '</ul>';
+  } else {
+    html += '<h4>Visual Cues:</h4><p>Not specified.</p>';
+  }
+
+  if (voiceoverMatch && voiceoverMatch[1] && voiceoverMatch[1].trim()) {
+    html += '<h4>Voiceover/Script:</h4>';
+    const voiceoverContent = voiceoverMatch[1].replace(/\\\\n/g, '<br>').replace(/\\*"/g, '"').trim(); // Corrected
+    html += `<p>${voiceoverContent}</p>`;
+  } else {
+    html += '<h4>Voiceover/Script:</h4><p>Not specified.</p>';
+  }
+  return html;
+}
+
+function formatContentThemesHtml(themesInput) {
+  let themes = [];
+  if (Array.isArray(themesInput)) {
+    themes = themesInput;
+  } else if (typeof themesInput === 'string') {
+    try {
+      themes = JSON.parse(themesInput); // If it's a JSON string array
+    } catch (e) {
+      themes = themesInput.split('\\\\n- ')
+                    .map(theme => theme.replace(/^\\s*\\*\\s*/, '').replace(/\\*\\*/g, '').trim()) // Corrected
+                    .filter(theme => theme && theme !== '*' && theme !== '--');
+    }
+  }
+
+  if (!Array.isArray(themes) || themes.length === 0) return '<p>No specific themes provided.</p>';
+
+  let html = '<ul>';
+  themes.forEach(theme => {
+    if (typeof theme === 'string') {
+      const cleanedTheme = theme.replace(/^\\s*[\\d\\.]*\\s*\\*\\s*/, '') // Corrected
+                                 .replace(/\\*\\*/g, '') // Corrected
+                                 .replace(/^- /, '')
+                                 .trim();
+      if (cleanedTheme && cleanedTheme.length > 1 && cleanedTheme !== '*' && cleanedTheme !== '--' && !cleanedTheme.match(/^\\d+\\.$/)) { // Corrected
+        html += `<li>${cleanedTheme}</li>`;
+      }
+    }
+  });
+  html += '</ul>';
+  return html.includes('<li>') ? html : '<p>No specific themes provided.</p>';
+}
+
+function formatHashtagStrategyHtml(str) {
+  if (typeof str !== 'string' || !str.trim()) return '<p>No hashtag strategy provided.</p>';
+  let html = '';
+  const cleanedStr = str.replace(/\\*\\*/g, ''); // Remove bold markers -> Corrected
+
+  const sectionTitles = ["Primary (Niche):", "Secondary (Trending/Regional):", "Broad Appeal:"];
+  let currentTitle = null;
+  let currentHashtags = [];
+  let foundContent = false;
+
+  cleanedStr.split('\\\\n').forEach(line => {
+    line = line.trim();
+    let isTitle = false;
+    for (const title of sectionTitles) {
+      if (line.startsWith(title)) {
+        if (currentTitle && currentHashtags.length > 0) {
+          html += `<h4>${currentTitle}</h4><ul>`;
+          currentHashtags.forEach(tag => html += `<li>${tag}</li>`);
+          html += '</ul>';
+          foundContent = true;
+        } else if (currentTitle) {
+           html += `<h4>${currentTitle}</h4><p>No specific hashtags listed.</p>`;
+        }
+        currentTitle = title;
+        currentHashtags = [];
+        const contentAfterTitle = line.substring(title.length).trim();
+        if (contentAfterTitle.startsWith("- ")) {
+            currentHashtags.push(cleanListItemText(contentAfterTitle));
+        } else if (contentAfterTitle) {
+            // currentHashtags.push(contentAfterTitle); // Avoid adding empty lines or placeholders
+        }
+        isTitle = true;
+        break;
+      }
+    }
+
+    if (!isTitle && currentTitle && line && !line.startsWith("---") && !line.match(/^\\s*\\d\\.\\s*$/) && line.toLowerCase() !== "(e. g.," && line.toLowerCase() !== "(e.g.,") { // Corrected
+      if (line.startsWith("- ")) {
+        currentHashtags.push(cleanListItemText(line));
+      } else { // If not a list item, could be a single tag or part of a previous one.
+        // currentHashtags.push(line); // Avoid adding fragmented lines as separate tags
+      }
+    }
+  });
+
+  // Add the last section
+  if (currentTitle && currentHashtags.length > 0) {
+    html += `<h4>${currentTitle}</h4><ul>`;
+    currentHashtags.forEach(tag => html += `<li>${tag}</li>`);
+    html += '</ul>';
+    foundContent = true;
+  } else if (currentTitle) {
+     html += `<h4>${currentTitle}</h4><p>No specific hashtags listed.</p>`;
+  }
+  
+  return foundContent || html.includes("<h4>") ? html : '<p>No hashtag strategy provided.</p>';
+}
+
+
+function formatMarketingStrategyToHtml(marketingStrategy) {
+  if (!marketingStrategy || Object.keys(marketingStrategy).length === 0) {
+    return "<h2>Marketing Strategy & Content Ideas</h2><p>No detailed strategy information available.</p>";
+  }
+  let emailBodyHtml = '<h2>Marketing Strategy & Content Ideas</h2>';
+
+  const sections = [
+    { title: 'Observations', key: 'observations', processor: (content) => createListHtml(content, 'Observations') },
+    { title: 'Key Trend Takeaways', key: 'keyTakeaways', processor: (content) => createListHtml(content, 'Key Trend Takeaways') },
+    { title: 'Sample TikTok Script', key: 'sampleScript', processor: formatSampleScriptHtml },
+    { title: 'Technical Specifications', key: 'technicalSpecifications', processor: (content) => createListHtml(content, 'Technical Specifications') },
+    { title: 'General Content Themes', key: 'contentThemes', processor: formatContentThemesHtml },
+    { title: 'Hashtag Strategy', key: 'hashtagStrategy', processor: formatHashtagStrategyHtml },
+    { title: 'Posting Frequency', key: 'postingFrequency', processor: (content) => createListHtml(content, 'Posting Frequency') }
+  ];
+
+  let hasContent = false;
+  for (const section of sections) {
+    const content = marketingStrategy[section.key] || (section.key === 'observations' ? marketingStrategy['rawContent'] : null) ;
+    if (content) {
+      const sectionHtml = section.processor(content);
+      if (sectionHtml && !sectionHtml.toLowerCase().includes("no information provided") && !sectionHtml.toLowerCase().includes("not specified") && !sectionHtml.toLowerCase().includes("no specific")) {
+        emailBodyHtml += `<h3>${section.title}</h3>`;
+        emailBodyHtml += sectionHtml;
+        hasContent = true;
+      }
+    }
+  }
+   if (!hasContent) {
+    return "<h2>Marketing Strategy & Content Ideas</h2><p>No detailed strategy information available at this time.</p>";
+  }
+
+
+  // Add the final concluding line from postingFrequency if it exists and isn't captured
+  if (marketingStrategy.postingFrequency && typeof marketingStrategy.postingFrequency === 'string') {
+    const match = marketingStrategy.postingFrequency.match(/This strategy balances[\\s\\S]*/i);
+    if (match && match[0]) {
+      emailBodyHtml += `<p>${match[0].replace(/\\*\\*/g, '').replace(/\\\\n/g, ' ').trim()}</p>`; // Corrected
+    }
+  }
+
+  emailBodyHtml = emailBodyHtml.replace(/\\\\n/g, '<br>');
+  emailBodyHtml = emailBodyHtml.replace(/(<br>\\s*){2,}/g, '<br>'); // Corrected
+  emailBodyHtml = emailBodyHtml.replace(/<p><br><\\/p>/g, ''); // Corrected
+  return emailBodyHtml;
+}
+
+
 /**
  * Send email with analysis results to user
  * @param {Object} user - User object
@@ -115,84 +316,49 @@ async function sendAnalysisEmail(user, analysisResults) {
       return false;
     }
 
-    // Extract relevant information from analysis results
-    const { data } = analysisResults;
+    const { data } = analysisResults; // This 'data' is the actual result from complete-workflow
     const queriesCount = data?.searchQueries?.length || 0;
     const videosCount = data?.videosCount || 0;
-    const marketingStrategy = data?.marketingStrategy || {};
+    const marketingStrategyData = data?.marketingStrategy || {};
 
-    // Log the structure of the marketingStrategy object for debugging
-    console.log('Marketing strategy structure:', JSON.stringify({
-      keys: Object.keys(marketingStrategy),
-      hasContentIdeas: !!marketingStrategy.content_ideas,
-      hasContentIdeasAlt: !!marketingStrategy.contentIdeas,
-      hasVideoIdeas: !!marketingStrategy.videoIdeas,
-      hasCombinedSummary: !!marketingStrategy.combined_summary,
-      hasCombinedSummaryAlt: !!marketingStrategy.combinedSummary
-    }));
+    console.log('Raw marketingStrategyData for formatting:', JSON.stringify(marketingStrategyData));
 
-    // Create content for the email
-    let contentIdeas = '';
-
-    // Check different possible locations of content ideas
-    const contentIdeasSource = marketingStrategy.content_ideas ||
-                              marketingStrategy.contentIdeas ||
-                              marketingStrategy.videoIdeas ||
-                              [];
-
-    // Parse content ideas if they're stored as a string
-    let ideas = [];
-    if (typeof contentIdeasSource === 'string') {
-      try {
-        // Try to parse as JSON
-        ideas = JSON.parse(contentIdeasSource);
-      } catch (e) {
-        // If not valid JSON, split by newlines or use as a single item
-        ideas = contentIdeasSource.includes('\n')
-          ? contentIdeasSource.split('\n').filter(Boolean)
-          : [contentIdeasSource];
-      }
-    } else if (Array.isArray(contentIdeasSource)) {
-      ideas = contentIdeasSource;
-    } else if (contentIdeasSource) {
-      ideas = [contentIdeasSource];
-    }
-
-    // Generate HTML list items
-    contentIdeas = ideas.map(idea => `<li>${idea}</li>`).join('');
-
-    // Create a summary for the email
-    const summary = marketingStrategy.combined_summary ||
-                   marketingStrategy.combinedSummary ||
-                   marketingStrategy.strategySummary ||
-                   marketingStrategy.summary ||
-                   'Analysis completed successfully.';
+    const formattedStrategyHtml = formatMarketingStrategyToHtml(marketingStrategyData);
 
     // Create the email content
     const htmlContent = `
       <html>
+        <head>
+          <style>
+            body { font-family: sans-serif; line-height: 1.6; color: #333; }
+            h1 { color: #1a1a1a; }
+            h2 { color: #2c2c2c; border-bottom: 1px solid #eee; padding-bottom: 5px; margin-top: 30px;}
+            h3 { color: #444; margin-top: 25px; }
+            h4 { color: #555; margin-top: 20px; }
+            ul { margin-left: 20px; padding-left: 0; }
+            li { margin-bottom: 8px; }
+            p { margin-bottom: 12px; }
+            .container { max-width: 700px; margin: 20px auto; padding: 20px; border: 1px solid #ddd; border-radius: 5px; }
+            .footer { margin-top: 30px; font-size: 0.9em; color: #777; }
+          </style>
+        </head>
         <body>
-          <h1>Your TikTok Analysis Results</h1>
-          <p>Hello ${user.full_name || 'there'},</p>
-          <p>We've completed your scheduled TikTok trend analysis. Here's what we found:</p>
+          <div class="container">
+            <h1>Your TikTok Analysis Results</h1>
+            <p>Hello ${user.full_name || 'there'},</p>
+            <p>We've completed your scheduled TikTok trend analysis. Here's what we found:</p>
 
-          <h2>Analysis Summary</h2>
-          <p>${summary}</p>
+            <h2>Analysis Stats</h2>
+            <ul>
+              <li>Search Queries Analyzed: ${queriesCount}</li>
+              <li>TikTok Videos Analyzed: ${videosCount}</li>
+            </ul>
 
-          <h2>Stats</h2>
-          <ul>
-            <li>Search Queries Analyzed: ${queriesCount}</li>
-            <li>TikTok Videos Analyzed: ${videosCount}</li>
-          </ul>
+            ${formattedStrategyHtml}
 
-          <h2>Content Ideas</h2>
-          <ul>
-            ${contentIdeas || '<li>No specific content ideas generated in this analysis.</li>'}
-          </ul>
-
-          <p>Log in to your dashboard to see the full analysis and more detailed recommendations.</p>
-
-          <p>Best regards,<br>The Complete Lazy Trend Team</p>
+            <p class="footer">Log in to your dashboard to see the full analysis and more detailed recommendations.</p>
+            <p class="footer">Best regards,<br>The Complete Lazy Trend Team</p>
+          </div>
         </body>
       </html>
     `;
