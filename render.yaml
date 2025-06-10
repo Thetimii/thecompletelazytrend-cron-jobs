@@ -1,10 +1,10 @@
 services:
   - type: cron
-    name: scheduled-workflow
+    name: scheduled-workflow-with-timezone
     runtime: node
     plan: free
     buildCommand: cd cron-jobs && npm install
-    startCommand: cd cron-jobs && node scheduled-workflow.js
+    startCommand: cd cron-jobs && node scheduled-workflow-with-timezone.js
     schedule: "0 * * * *"
     envVars:
       - key: SUPABASE_URL
