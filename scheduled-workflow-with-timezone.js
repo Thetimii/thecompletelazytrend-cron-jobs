@@ -104,23 +104,23 @@ async function updateLastRunTimestamp(userId) {
 
 // Helper functions to format marketing strategy to HTML
 function cleanListItemText(text) {
-  return text.replace(/^- /, '').replace(/\\\\n/g, ' ').trim();
+  return text.replace(/^- /, '').replace(/\\n/g, ' ').trim();
 }
 
 function createListHtml(str, title) {
   if (typeof str !== 'string' || !str.trim()) return `<p>No ${title.toLowerCase()} provided.</p>`;
   
-  let cleanedStr = str.replace(/\\*\\*/g, ''); // Remove all bold markers -> Corrected
-  cleanedStr = cleanedStr.replace(/^\\s*\\d\\.\\s*([\\w\\s()]+:)?/i, ''); // Remove leading "1. Title:" or "1. " -> Corrected
+  let cleanedStr = str.replace(/\*\*/g, ''); // Remove all bold markers
+  cleanedStr = cleanedStr.replace(/^\s*\d\.\s*([\w\s()]+:)?/i, ''); // Remove leading "1. Title:" or "1. "
   cleanedStr = cleanedStr.replace(/---/g, '').trim(); // Remove "---"
 
-  const items = cleanedStr.split('\\\\n- ')
+  const items = cleanedStr.split('\\n- ')
     .map(item => cleanListItemText(item))
     .filter(item => item);
 
-  if (items.length === 0 || (items.length === 1 && cleanedStr.indexOf('\\\\n- ') === -1)) {
+  if (items.length === 0 || (items.length === 1 && cleanedStr.indexOf('\\n- ') === -1)) {
     // If no list items or it's a single block of text not starting with list markers
-    return `<p>${cleanedStr.replace(/\\\\n/g, '<br>')}</p>`;
+    return `<p>${cleanedStr.replace(/\\n/g, '<br>')}</p>`;
   }
 
   let listHtml = '<ul>';
@@ -136,14 +136,14 @@ function createListHtml(str, title) {
 function formatSampleScriptHtml(scriptStr) {
   if (typeof scriptStr !== 'string' || !scriptStr.trim()) return '<p>No sample script provided.</p>';
   let html = '';
-  const cleanedScriptStr = scriptStr.replace(/\\*\\*/g, ''); // Remove bold markers globally first -> Corrected
+  const cleanedScriptStr = scriptStr.replace(/\*\*/g, ''); // Remove bold markers globally first
 
-  const visualCuesMatch = cleanedScriptStr.match(/Visual Cues:([\\s\\S]*?)(Voiceover\\/Script:|$)/i); // Corrected
-  const voiceoverMatch = cleanedScriptStr.match(/Voiceover\\/Script:([\\s\\S]*)/i); // Corrected
+  const visualCuesMatch = cleanedScriptStr.match(/Visual Cues:([\s\S]*?)(Voiceover\/Script:|$)/i);
+  const voiceoverMatch = cleanedScriptStr.match(/Voiceover\/Script:([\s\S]*)/i);
 
   if (visualCuesMatch && visualCuesMatch[1] && visualCuesMatch[1].trim()) {
     html += '<h4>Visual Cues:</h4><ul>';
-    visualCuesMatch[1].split('\\\\n- ')
+    visualCuesMatch[1].split('\\n- ')
       .map(line => cleanListItemText(line))
       .filter(line => line)
       .forEach(item => {
@@ -156,7 +156,7 @@ function formatSampleScriptHtml(scriptStr) {
 
   if (voiceoverMatch && voiceoverMatch[1] && voiceoverMatch[1].trim()) {
     html += '<h4>Voiceover/Script:</h4>';
-    const voiceoverContent = voiceoverMatch[1].replace(/\\\\n/g, '<br>').replace(/\\*"/g, '"').trim(); // Corrected
+    const voiceoverContent = voiceoverMatch[1].replace(/\\n/g, '<br>').replace(/\*"/g, '"').trim();
     html += `<p>${voiceoverContent}</p>`;
   } else {
     html += '<h4>Voiceover/Script:</h4><p>Not specified.</p>';
@@ -172,8 +172,8 @@ function formatContentThemesHtml(themesInput) {
     try {
       themes = JSON.parse(themesInput); // If it's a JSON string array
     } catch (e) {
-      themes = themesInput.split('\\\\n- ')
-                    .map(theme => theme.replace(/^\\s*\\*\\s*/, '').replace(/\\*\\*/g, '').trim()) // Corrected
+      themes = themesInput.split('\\n- ')
+                    .map(theme => theme.replace(/^\s*\*\s*/, '').replace(/\*\*/g, '').trim())
                     .filter(theme => theme && theme !== '*' && theme !== '--');
     }
   }
@@ -183,11 +183,11 @@ function formatContentThemesHtml(themesInput) {
   let html = '<ul>';
   themes.forEach(theme => {
     if (typeof theme === 'string') {
-      const cleanedTheme = theme.replace(/^\\s*[\\d\\.]*\\s*\\*\\s*/, '') // Corrected
-                                 .replace(/\\*\\*/g, '') // Corrected
+      const cleanedTheme = theme.replace(/^\s*[\d.]*\s*\*\s*/, '')
+                                 .replace(/\*\*/g, '')
                                  .replace(/^- /, '')
                                  .trim();
-      if (cleanedTheme && cleanedTheme.length > 1 && cleanedTheme !== '*' && cleanedTheme !== '--' && !cleanedTheme.match(/^\\d+\\.$/)) { // Corrected
+      if (cleanedTheme && cleanedTheme.length > 1 && cleanedTheme !== '*' && cleanedTheme !== '--' && !cleanedTheme.match(/^\d+\.$/)) {
         html += `<li>${cleanedTheme}</li>`;
       }
     }
@@ -199,14 +199,14 @@ function formatContentThemesHtml(themesInput) {
 function formatHashtagStrategyHtml(str) {
   if (typeof str !== 'string' || !str.trim()) return '<p>No hashtag strategy provided.</p>';
   let html = '';
-  const cleanedStr = str.replace(/\\*\\*/g, ''); // Remove bold markers -> Corrected
+  const cleanedStr = str.replace(/\*\*/g, ''); // Remove bold markers
 
   const sectionTitles = ["Primary (Niche):", "Secondary (Trending/Regional):", "Broad Appeal:"];
   let currentTitle = null;
   let currentHashtags = [];
   let foundContent = false;
 
-  cleanedStr.split('\\\\n').forEach(line => {
+  cleanedStr.split('\\n').forEach(line => {
     line = line.trim();
     let isTitle = false;
     for (const title of sectionTitles) {
@@ -232,7 +232,7 @@ function formatHashtagStrategyHtml(str) {
       }
     }
 
-    if (!isTitle && currentTitle && line && !line.startsWith("---") && !line.match(/^\\s*\\d\\.\\s*$/) && line.toLowerCase() !== "(e. g.," && line.toLowerCase() !== "(e.g.,") { // Corrected
+    if (!isTitle && currentTitle && line && !line.startsWith("---") && !line.match(/^\s*\d\.\s*$/) && line.toLowerCase() !== "(e. g.," && line.toLowerCase() !== "(e.g.,") {
       if (line.startsWith("- ")) {
         currentHashtags.push(cleanListItemText(line));
       } else { // If not a list item, could be a single tag or part of a previous one.
@@ -290,15 +290,15 @@ function formatMarketingStrategyToHtml(marketingStrategy) {
 
   // Add the final concluding line from postingFrequency if it exists and isn't captured
   if (marketingStrategy.postingFrequency && typeof marketingStrategy.postingFrequency === 'string') {
-    const match = marketingStrategy.postingFrequency.match(/This strategy balances[\\s\\S]*/i);
+    const match = marketingStrategy.postingFrequency.match(/This strategy balances[\s\S]*/i);
     if (match && match[0]) {
-      emailBodyHtml += `<p>${match[0].replace(/\\*\\*/g, '').replace(/\\\\n/g, ' ').trim()}</p>`; // Corrected
+      emailBodyHtml += `<p>${match[0].replace(/\*\*/g, '').replace(/\\n/g, ' ').trim()}</p>`;
     }
   }
 
-  emailBodyHtml = emailBodyHtml.replace(/\\\\n/g, '<br>');
-  emailBodyHtml = emailBodyHtml.replace(/(<br>\\s*){2,}/g, '<br>'); // Corrected
-  emailBodyHtml = emailBodyHtml.replace(/<p><br><\\/p>/g, ''); // Corrected
+  emailBodyHtml = emailBodyHtml.replace(/\\n/g, '<br>');
+  emailBodyHtml = emailBodyHtml.replace(/(<br>\s*){2,}/g, '<br>');
+  emailBodyHtml = emailBodyHtml.replace(/<p><br><\/p>/g, '');
   return emailBodyHtml;
 }
 
