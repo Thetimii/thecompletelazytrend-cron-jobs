@@ -311,15 +311,11 @@ async function runScheduledWorkflows() {
     // Run workflow for each user scheduled for analysis
     for (const user of usersForAnalysis) {
       console.log(`Processing analysis for user ${user.email}`);
-
-      // Run the workflow
       const result = await runWorkflowForUser(user);
 
-      if (result) {
-        // Update the last run timestamp
+      if (result && Object.keys(result).length > 0) {
+        console.log(`Workflow for user ${user.email} completed successfully. Result keys: ${Object.keys(result)}. Storing analysis.`);
         await updateLastRunTimestamp(user.id);
-
-        // Store the analysis results for email sending
         await supabase
           .from('users')
           .update({
@@ -327,8 +323,9 @@ async function runScheduledWorkflows() {
             analysis_ready_for_email: true
           })
           .eq('id', user.id);
-
         console.log(`Analysis completed and stored for user ${user.email}`);
+      } else {
+        console.log(`Workflow for user ${user.email} did not return a valid result (result is null, empty, or falsy). Analysis not stored, 'analysis_ready_for_email' flag not set.`);
       }
     }
 
@@ -336,27 +333,31 @@ async function runScheduledWorkflows() {
     for (const user of usersForEmail) {
       console.log(`Processing email for user ${user.email}`);
 
-      // Get the stored analysis results
-      const analysisResults = user.last_analysis_results;
-
-      if (analysisResults) {
-        // Send the email
+      if (user.analysis_ready_for_email && user.last_analysis_results && Object.keys(user.last_analysis_results).length > 0) {
+        const analysisResults = user.last_analysis_results;
+        console.log(`Found analysis results for user ${user.email} ('analysis_ready_for_email' is true). Proceeding to send email.`);
         const emailSent = await sendAnalysisEmail(user, analysisResults);
 
         if (emailSent) {
-          // Update the last email sent timestamp and reset the flag
           await supabase
             .from('users')
             .update({
               last_email_sent: new Date().toISOString(),
-              analysis_ready_for_email: false
+              analysis_ready_for_email: false // Reset the flag
             })
             .eq('id', user.id);
-
           console.log(`Email sent and status updated for user ${user.email}`);
+        } else {
+          console.log(`Email sending API call failed for user ${user.email} after attempting.`);
         }
       } else {
-        console.log(`No analysis results found for user ${user.email}`);
+        console.log(`Skipping email for user ${user.email} due to missing prerequisites:`);
+        if (!user.analysis_ready_for_email) {
+          console.log(`  - 'analysis_ready_for_email' flag is false or missing.`);
+        }
+        if (!user.last_analysis_results || Object.keys(user.last_analysis_results).length === 0) {
+          console.log(`  - 'last_analysis_results' is missing, null, or empty.`);
+        }
       }
     }
 
