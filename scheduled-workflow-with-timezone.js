@@ -224,52 +224,31 @@ async function sendAnalysisEmail(user, analysisResults) {
  * @param {string} timezone - IANA timezone string (e.g., 'America/New_York')
  * @returns {number} - Hour in UTC (0-23)
  */
-function convertLocalToUTC(hour, timezone) {
+function convertLocalToUTC(localHour, timezone) {
   try {
-    // Create a date object for today at the specified hour in the user's timezone
-    const now = new Date();
+    // Iterate through UTC hours to find the one that matches the user's local hour in their timezone
+    for (let utcHourCandidate = 0; utcHourCandidate < 24; utcHourCandidate++) {
+      const date = new Date();
+      date.setUTCHours(utcHourCandidate, 0, 0, 0); // Set to a candidate UTC hour
 
-    // Create a formatter that will give us the time in the user's timezone
-    const formatter = new Intl.DateTimeFormat('en-US', {
-      timeZone: timezone,
-      year: 'numeric',
-      month: 'numeric',
-      day: 'numeric',
-      hour: 'numeric',
-      minute: 'numeric',
-      second: 'numeric',
-      hour12: false
-    });
+      const formatter = new Intl.DateTimeFormat('en-US', {
+        timeZone: timezone,
+        hour: 'numeric', // Get hour in target timezone
+        hour12: false
+      });
+      const hourInUserTimezone = parseInt(formatter.format(date));
 
-    // Get the current date/time parts in the user's timezone
-    const parts = formatter.formatToParts(now);
-    const dateParts = {};
-
-    // Extract the date parts
-    parts.forEach(part => {
-      if (part.type !== 'literal') {
-        dateParts[part.type] = parseInt(part.value, 10);
+      if (hourInUserTimezone === localHour) {
+        console.log(`Converted local time ${localHour}:00 in timezone ${timezone} to UTC hour: ${utcHourCandidate}:00`);
+        return utcHourCandidate;
       }
-    });
-
-    // Create a date object for today at the specified hour in the user's timezone
-    const userLocalDate = new Date(
-      dateParts.year,
-      dateParts.month - 1, // JavaScript months are 0-based
-      dateParts.day,
-      hour, // The hour in the user's local time
-      0,    // Minutes
-      0     // Seconds
-    );
-
-    // Convert to UTC hour
-    const utcHour = userLocalDate.getUTCHours();
-
-    console.log(`Converted local time ${hour}:00 in timezone ${timezone} to UTC hour: ${utcHour}:00`);
-    return utcHour;
+    }
+    // Fallback or error if no match (should not happen for valid timezones/hours on standard dates)
+    console.error(`Could not accurately convert local time ${localHour}:00 in timezone ${timezone} to UTC. Using original hour as fallback.`);
+    return localHour; // Fallback to the original hour if conversion isn't found (e.g. during DST transitions for non-existent hours)
   } catch (error) {
     console.error(`Error converting time for timezone ${timezone}:`, error);
-    return hour; // Return the original hour if conversion fails
+    return localHour; // Return the original hour if conversion fails
   }
 }
 
